@@ -1,0 +1,17 @@
+{
+  "filters": {
+    "make": "BMW",
+    "model": "M2",
+    "min_year": 2023,
+    "max_year": 2026,
+    "max_price": 55000,
+    "max_mileage": 20000,
+    "postcode": "GU15 2BA",
+    "radius_miles": 1000
+  },
+  "sites": {
+    "autotrader": true,
+    "pistonheads": true,
+    "bmw_uk": true
+  }
+}
