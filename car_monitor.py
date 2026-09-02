@@ -45,19 +45,30 @@ _PAGE = None
 def start_browser():
     global _PW, _BROWSER, _PAGE
     _PW      = sync_playwright().start()
-    _BROWSER = _PW.chromium.launch(headless=True)
-    _PAGE    = _BROWSER.new_page(
+    _BROWSER = _PW.chromium.launch(
+        headless=True,
+        args=[
+            "--no-sandbox",
+            "--disable-blink-features=AutomationControlled",
+            "--disable-dev-shm-usage",
+        ],
+    )
+    context = _BROWSER.new_context(
         user_agent=(
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
             "AppleWebKit/537.36 (KHTML, like Gecko) "
             "Chrome/124.0.0.0 Safari/537.36"
         ),
         viewport={"width": 1280, "height": 800},
+        locale="en-GB",
+        extra_http_headers={
+            "Accept-Language": "en-GB,en;q=0.9",
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        },
     )
-    _PAGE.set_extra_http_headers({
-        "Accept-Language": "en-GB,en;q=0.9",
-        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-    })
+    context.add_init_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
+    _PAGE = context.new_page()
+
 
 
 def stop_browser():
