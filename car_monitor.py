@@ -1,36 +1,49 @@
-name: Car Monitor
+#!/usr/bin/env python3
+"""
+Car Monitor - BMW M2 used car listing scraper and HTML dashboard.
+Uses Playwright (headless browser) to bypass JS rendering and bot detection.
 
-on:
-  schedule:
-    - cron: '0 */2 * * *'
-  workflow_dispatch:
+Usage:
+    python car_monitor.py          Normal run
+    python car_monitor.py --test   Treat all listings as new
+"""
 
-permissions:
-  contents: write
+import argparse
+import json
+import logging
+import re
+import sys
+import time
+from datetime import datetime
+from pathlib import Path
+from typing import Optional
 
-jobs:
-  scrape:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
+from bs4 import BeautifulSoup
+from playwright.sync_api import sync_playwright, TimeoutError as PlaywrightTimeout
 
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
+SCRIPT_DIR = Path(__file__).parent.resolve()
+CONFIG_FILE = SCRIPT_DIR / "config.json"
+SEEN_FILE   = SCRIPT_DIR / "seen_listings.json"
+DASHBOARD_FILE = SCRIPT_DIR / "dashboard.html"
+LOG_FILE    = SCRIPT_DIR / "last_run.log"
 
-      - name: Install dependencies
-        run: |
-          pip install -r requirements.txt
-          playwright install chromium
-          playwright install-deps chromium
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(message)s",
+    handlers=[
+        logging.FileHandler(LOG_FILE, encoding="utf-8"),
+        logging.StreamHandler(sys.stdout),
+    ],
+)
+log = logging.getLogger(__name__)
 
-      - name: Run scraper
-        run: python car_monitor.py
+_PW = None
+_BROWSER = None
+_PAGE = None
 
-      - name: Commit updated dashboard
-        run: |
-          git config user.name "Car Monitor Bot"
-          git config user.email "actions@github.com"
-          git add dashboard.html seen_listings.json
-          git diff --staged --quiet || git commit -m "Update dashboard $(date -u '+%Y-%m-%d %H:%M UTC')"
-          git push
+
+def start_browser():
+    global _PW, _BROWSER, _PAGE
+    _PW      = sync_playwright().start()
+    _BROWSER = _PW.chromium.launch(headless=True)
+    _PAGE    = _BROWSER.new_page(
