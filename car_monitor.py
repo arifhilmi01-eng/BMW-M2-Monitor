@@ -72,13 +72,13 @@ def start_browser():
 
 
 def stop_browser():
-    global _PW, _BROWSER, _PAGE
+    global _PW, _BROWSER, _PAGE, _CONTEXT
     try:
         if _BROWSER: _BROWSER.close()
         if _PW:      _PW.stop()
     except Exception:
         pass
-    _PW = _BROWSER = _PAGE = None
+    _PW = _BROWSER = _PAGE = _CONTEXT = None
 
 
 def get_page_html(url: str, wait_selector: str = "body", timeout: int = 30000) -> Optional[str]:
